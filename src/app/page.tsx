@@ -1,30 +1,47 @@
-
-import Results from '../components/Results';
+// src/app/page.tsx
+import React from "react";
+import Results from "../components/Results";
 
 const API_KEY = process.env.API_KEY;
 
-export default async function Home({ searchParams }) {
-  const { genre } = await searchParams; // ✅ unwrap the Promise
+interface HomeProps {
+  searchParams:
+    | Record<string, string | undefined>
+    | Promise<Record<string, string | undefined>>;
+}
 
-  const selectedGenre = genre || "fetchTrending";
+export default async function Home({ searchParams }: HomeProps) {
+  const params = await searchParams;
+  const genre = params.genre || "fetchTrending";
 
-  const endpoint =
-    selectedGenre === "fetchTopRated"
-      ? "movie/top_rated"
-      : "trending/all/week";
+  let url = "";
 
-  const res = await fetch(
-    `https://api.themoviedb.org/3/${endpoint}?api_key=${API_KEY}&language=en-US&page=1`,
-    { next: { revalidate: 3600 } }
-  );
+  if (genre === "fetchTrending") {
+    url = `https://api.themoviedb.org/3/trending/movie/week?api_key=${API_KEY}&language=en-US`;
+  } else if (genre === "fetchTopRated") {
+    url = `https://api.themoviedb.org/3/movie/top_rated?api_key=${API_KEY}&language=en-US`;
+  } else {
+    url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=${encodeURIComponent(genre)}&language=en-US`;
+  }
 
-  if (!res.ok) throw new Error("Failed to fetch data");
+
+  const res = await fetch(url, { cache: "no-store" });
+
+  if (!res.ok) {
+    console.error("TMDB API error:", res.status, res.statusText);
+    throw new Error("Failed to fetch movies");
+  }
 
   const data = await res.json();
+  const results = data.results || [];
 
   return (
-    <div>
-      <Results results={data.results} />
-    </div>
+    <main className="p-4">
+      {results.length === 0 ? (
+        <h1 className="text-center pt-6">No results found.</h1>
+      ) : (
+        <Results results={results} />
+      )}
+    </main>
   );
 }
