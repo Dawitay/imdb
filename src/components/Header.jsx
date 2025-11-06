@@ -1,3 +1,4 @@
+"use client"
 import React from 'react'
 import MenuItem from '../components/MenuItem';
 import { AiFillHome } from "react-icons/ai"; 
